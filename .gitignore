@@ -1,0 +1,11 @@
+*.iml
+.gradle/
+build/
+local.properties
+.idea/
+assets_out/
+falconsai_tmp/
+marqo_tmp.onnx
+app/src/main/assets/*.onnx
+app/src/main/assets/model_info.json
+app/src/main/assets/blocklist.txt

@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.SafeVision" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">#0A1128</item>
+        <item name="android:navigationBarColor">#0A1128</item>
+        <item name="android:windowBackground">#0A1128</item>
+    </style>
+</resources>
