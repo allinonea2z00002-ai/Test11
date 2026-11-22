@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">SafeVision</string>
+    <string name="guard_label">SafeVision Screen Guard</string>
+    <string name="guard_desc">Takes screenshots of your screen about once a second and checks them with an AI model on this device. If a screenshot looks inappropriate, SafeVision covers the screen. Screenshots are not saved or uploaded.</string>
 </resources>

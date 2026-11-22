@@ -2,6 +2,8 @@ package com.safevision
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -42,18 +44,13 @@ private val NavyScheme = darkColorScheme(
 )
 
 class MainActivity : ComponentActivity() {
-    private val engine by lazy { ModerationEngine(applicationContext) }
+    private val engine get() = EngineHolder.get(applicationContext)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme(colorScheme = NavyScheme) { App(engine) }
         }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        if (isFinishing) engine.close()
     }
 }
 
@@ -76,6 +73,14 @@ fun App(engine: ModerationEngine) {
         }
     }
 
+    var guardOn by remember { mutableStateOf(isGuardEnabled(ctx)) }
+    DisposableEffect(ctx) {
+        val owner = ctx as ComponentActivity
+        val obs = LifecycleEventObserver { _, e -> if (e == Lifecycle.Event.ON_RESUME) guardOn = isGuardEnabled(ctx) }
+        owner.lifecycle.addObserver(obs)
+        onDispose { owner.lifecycle.removeObserver(obs) }
+    }
+
     var tab by rememberSaveable { mutableIntStateOf(0) }
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -88,8 +93,8 @@ fun App(engine: ModerationEngine) {
         }
     ) { pad ->
         Box(Modifier.padding(pad).fillMaxSize()) {
-            if (tab == 0) HomeScreen(engine, s)
-            if (tab == 2) SettingsScreen(s) { new -> scope.launch { ctx.saveSettings(new) } }
+            if (tab == 0) HomeScreen(engine, s, guardOn)
+            if (tab == 2) SettingsScreen(s, guardOn) { new -> scope.launch { ctx.saveSettings(new) } }
             // The browser stays composed so the page is not lost when switching tabs.
             Box(if (tab == 1) Modifier.fillMaxSize() else Modifier.size(0.dp)) {
                 BrowserScreen(engine, s, blocklist, active = tab == 1)

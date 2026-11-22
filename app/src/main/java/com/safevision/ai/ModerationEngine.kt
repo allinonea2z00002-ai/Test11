@@ -140,6 +140,24 @@ class ModerationEngine(context: Context) : AutoCloseable {
         return th.verdict(s)
     }
 
+    /** Full-screen capture: portrait screens are split into square tiles so nothing is squashed. */
+    fun classifyScreen(bmp: Bitmap): Verdict {
+        val w = bmp.width
+        val h = bmp.height
+        if (h <= w) return classifyImage(bmp)
+        val n = kotlin.math.ceil(h.toFloat() / w).toInt().coerceIn(2, 3)
+        var worst = Verdict.SAFE
+        for (i in 0 until n) {
+            val y = (h - w) * i / (n - 1)
+            val tile = Bitmap.createBitmap(bmp, 0, y, w, w)
+            val v = classifyImage(tile)
+            tile.recycle()
+            if (v.ordinal > worst.ordinal) worst = v
+            if (worst == Verdict.INAPPROPRIATE) break
+        }
+        return worst
+    }
+
     /** Video frames: Marqo (fast), plus Falconsai when borderline. */
     fun classifyFrame(bmp: Bitmap): Verdict {
         val th = thresholds

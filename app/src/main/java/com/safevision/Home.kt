@@ -44,7 +44,7 @@ fun decodeSampled(ctx: Context, uri: Uri, max: Int): Bitmap? {
 }
 
 @Composable
-fun HomeScreen(engine: ModerationEngine, s: Settings) {
+fun HomeScreen(engine: ModerationEngine, s: Settings, guardOn: Boolean) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     var img by remember { mutableStateOf<Bitmap?>(null) }
@@ -101,7 +101,7 @@ fun HomeScreen(engine: ModerationEngine, s: Settings) {
                 Column {
                     Text(if (s.anyOn) "Protection ON" else "Protection OFF", fontWeight = FontWeight.SemiBold)
                     Text(
-                        "Images: ${onOff(s.image)}, Video: ${onOff(s.video)}, Websites: ${onOff(s.web)}",
+                        "Images: ${onOff(s.image)}, Video: ${onOff(s.video)}, Websites: ${onOff(s.web)}, Screen Guard: ${onOff(s.guard && guardOn)}",
                         color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp
                     )
                 }
@@ -141,7 +141,7 @@ fun HomeScreen(engine: ModerationEngine, s: Settings) {
                     fontSize = 13.sp
                 )
                 Text(
-                    "Not accessible: other apps, the gallery, and the rest of the phone. Android does not allow a normal app to filter them.",
+                    "Screen Guard (optional, needs Accessibility permission): checks screenshots of other apps about once a second. Unsafe content can show briefly before it is covered, and protected screens (banking, DRM video) cannot be inspected. Only the screen is checked, not files or notifications.",
                     fontSize = 13.sp
                 )
                 Text("No AI detector is 100% accurate. It can miss content or block safe content.", fontSize = 13.sp)

@@ -15,7 +15,8 @@ data class Settings(
     val image: Boolean = true,
     val video: Boolean = true,
     val web: Boolean = true,
-    val sensitivity: Float = 0.5f
+    val sensitivity: Float = 0.5f,
+    val guard: Boolean = false
 ) {
     /** Higher sensitivity lowers the thresholds (blocks more). 0.5 gives 0.30 / 0.70. */
     val thresholds: Thresholds
@@ -23,16 +24,17 @@ data class Settings(
             val inappropriate = 0.9f - 0.4f * sensitivity
             return Thresholds((inappropriate - 0.4f).coerceAtLeast(0.1f), inappropriate)
         }
-    val anyOn: Boolean get() = image || video || web
+    val anyOn: Boolean get() = image || video || web || guard
 }
 
 private val K_IMAGE = booleanPreferencesKey("image")
 private val K_VIDEO = booleanPreferencesKey("video")
 private val K_WEB = booleanPreferencesKey("web")
 private val K_SENS = floatPreferencesKey("sensitivity")
+private val K_GUARD = booleanPreferencesKey("guard")
 
 fun Context.settingsFlow(): Flow<Settings> = store.data.map { p ->
-    Settings(p[K_IMAGE] ?: true, p[K_VIDEO] ?: true, p[K_WEB] ?: true, p[K_SENS] ?: 0.5f)
+    Settings(p[K_IMAGE] ?: true, p[K_VIDEO] ?: true, p[K_WEB] ?: true, p[K_SENS] ?: 0.5f, p[K_GUARD] ?: false)
 }
 
 suspend fun Context.saveSettings(s: Settings) {
@@ -41,6 +43,7 @@ suspend fun Context.saveSettings(s: Settings) {
         it[K_VIDEO] = s.video
         it[K_WEB] = s.web
         it[K_SENS] = s.sensitivity
+        it[K_GUARD] = s.guard
     }
 }
 
