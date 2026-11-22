@@ -1,6 +1,17 @@
 # Exports the three models to INT8 ONNX and writes model_info.json (label index + normalisation).
 # Needs internet. Run from the repo root:  python tools/export_models.py
-import json, os, shutil, subprocess
+import json, os, shutil, subprocess, sys
+
+# CI-only repair, BEFORE importing torch: the workflow installs torch from the
+# CPU wheel index, but timm pulls torchvision from PyPI, and the two can
+# mismatch (RuntimeError: operator torchvision::nms does not exist). Installing
+# both from the CPU index lets pip pick a matched pair. A no-op (seconds) when
+# the pair already matches. Skipped for local runs so a local CUDA torch is
+# never replaced.
+if os.environ.get("CI"):
+    subprocess.run([sys.executable, "-m", "pip", "install", "torch", "torchvision",
+                    "--index-url", "https://download.pytorch.org/whl/cpu"], check=True)
+
 import torch, timm, nudenet
 from onnxruntime.quantization import quantize_dynamic, QuantType
 
