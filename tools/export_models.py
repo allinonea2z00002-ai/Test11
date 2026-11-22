@@ -14,6 +14,9 @@ import json, os, shutil, subprocess, sys
 if os.environ.get("CI"):
     subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "torch", "torchvision",
                     "--index-url", "https://download.pytorch.org/whl/cpu"], check=True)
+    # torch.onnx.export (Marqo step) needs onnxscript in recent torch versions;
+    # it is not a dependency of torch/timm/optimum, so install it from PyPI.
+    subprocess.run([sys.executable, "-m", "pip", "install", "onnxscript"], check=True)
 
 import torch, timm, nudenet
 from onnxruntime.quantization import quantize_dynamic, QuantType
