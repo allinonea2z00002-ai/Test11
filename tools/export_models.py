@@ -3,13 +3,16 @@
 import json, os, shutil, subprocess, sys
 
 # CI-only repair, BEFORE importing torch: the workflow installs torch from the
-# CPU wheel index, but timm pulls torchvision from PyPI, and the two can
-# mismatch (RuntimeError: operator torchvision::nms does not exist). Installing
-# both from the CPU index lets pip pick a matched pair. A no-op (seconds) when
-# the pair already matches. Skipped for local runs so a local CUDA torch is
-# never replaced.
+# CPU wheel index, but timm pulls torchvision from PyPI, and the PyPI wheel is
+# built against PyPI torch, not the +cpu torch build — importing it fails with
+# RuntimeError: operator torchvision::nms does not exist. Installing from the
+# CPU index swaps in the +cpu torchvision build (0.29.2+cpu), compiled for
+# this torch (its metadata requires torch >= 2.14.0, so torch 2.15.0+cpu is
+# fine). Plain `pip install` is NOT enough: pip reports the PyPI wheel as
+# "already satisfied" and never replaces it, so --upgrade is required.
+# Skipped for local runs so a local CUDA torch is never touched.
 if os.environ.get("CI"):
-    subprocess.run([sys.executable, "-m", "pip", "install", "torch", "torchvision",
+    subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "torch", "torchvision",
                     "--index-url", "https://download.pytorch.org/whl/cpu"], check=True)
 
 import torch, timm, nudenet
