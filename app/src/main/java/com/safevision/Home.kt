@@ -49,6 +49,7 @@ fun HomeScreen(engine: ModerationEngine, s: Settings, guardOn: Boolean) {
     val scope = rememberCoroutineScope()
     var img by remember { mutableStateOf<Bitmap?>(null) }
     var verdict by remember { mutableStateOf<Verdict?>(null) }
+    var score by remember { mutableStateOf<Float?>(null) }
     var reveal by remember { mutableStateOf(false) }
     var scanning by remember { mutableStateOf(false) }
     var vid by remember { mutableStateOf<Uri?>(null) }
@@ -56,15 +57,16 @@ fun HomeScreen(engine: ModerationEngine, s: Settings, guardOn: Boolean) {
 
     val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
-        vid = null; img = null; verdict = null; reveal = false
+        vid = null; img = null; verdict = null; score = null; reveal = false
         scope.launch {
             scanning = true
             val result = withContext(Dispatchers.Default) {
                 val b = decodeSampled(ctx, uri, 1280) ?: return@withContext null
-                val v = if (s.image) engine.classifyImage(b) else Verdict.SAFE
-                if (v == Verdict.INAPPROPRIATE) { b.recycle(); null to v } else b to v
+                val sc = if (s.image) engine.scoreImage(b) else 0f
+                val v = engine.thresholds.verdict(sc)
+                if (v == Verdict.INAPPROPRIATE) { b.recycle(); Triple(null, v, sc) } else Triple(b, v, sc)
             }
-            if (result != null) { img = result.first; verdict = result.second }
+            if (result != null) { img = result.first; verdict = result.second; score = result.third }
             scanning = false
         }
     }
@@ -126,6 +128,12 @@ fun HomeScreen(engine: ModerationEngine, s: Settings, guardOn: Boolean) {
                     OutlinedButton(onClick = { reveal = true }) { Text("Show anyway") }
                 }
                 else -> img?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxWidth()) }
+            }
+            score?.let {
+                Text(
+                    "Score: ${(it * 100).toInt()}%  •  Blocks at ${(s.thresholds.inappropriate * 100).toInt()}%",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp
+                )
             }
         }
 

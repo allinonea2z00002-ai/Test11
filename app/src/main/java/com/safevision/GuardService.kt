@@ -98,8 +98,8 @@ class GuardService : AccessibilityService() {
             r.hardwareBuffer.close()
             if (bmp != null) {
                 if (changed(bmp)) {
-                    val v = engine.classifyScreen(bmp)
-                    if (v == Verdict.INAPPROPRIATE) handler.post { showOverlay() }
+                    val sc = engine.scoreScreen(bmp)
+                    if (engine.thresholds.verdict(sc) == Verdict.INAPPROPRIATE) handler.post { showOverlay(sc) }
                 }
                 bmp.recycle()
             }
@@ -129,7 +129,7 @@ class GuardService : AccessibilityService() {
         return d / (px.size * 3) > 4
     }
 
-    private fun showOverlay() {
+    private fun showOverlay(score: Float) {
         if (overlay != null) return
         val wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         val box = LinearLayout(this).apply {
@@ -146,7 +146,13 @@ class GuardService : AccessibilityService() {
                 text = "The screen looked inappropriate."
                 setTextColor(Color.parseColor("#B8C4E8"))
                 gravity = Gravity.CENTER
-                setPadding(48, 16, 48, 32)
+                setPadding(48, 16, 48, 8)
+            })
+            addView(TextView(context).apply {
+                text = "Score: ${(score * 100).toInt()}%"
+                setTextColor(Color.parseColor("#B8C4E8"))
+                gravity = Gravity.CENTER
+                setPadding(48, 0, 48, 32)
             })
             addView(Button(context).apply {
                 text = "Go home"

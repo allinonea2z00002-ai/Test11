@@ -132,31 +132,36 @@ class ModerationEngine(context: Context) : AutoCloseable {
     private val marqoL = lazy { VitScorer(ctx, "marqo_int8.onnx", 384, ModelInfo.load(ctx, "marqo")) }
     private val nudenetL = lazy { NudeNetScorer(ctx) }
 
-    /** Images and browser: Falconsai, plus NudeNet when the score is borderline. */
-    fun classifyImage(bmp: Bitmap): Verdict {
+    /** Effective image score 0..1 (Falconsai, NudeNet max when borderline). */
+    fun scoreImage(bmp: Bitmap): Float {
         val th = thresholds
         var s = falconsaiL.value.score(bmp)
         if (th.inBand(s)) s = max(s, nudenetL.value.score(bmp))
-        return th.verdict(s)
+        return s
     }
 
-    /** Full-screen capture: portrait screens are split into square tiles so nothing is squashed. */
-    fun classifyScreen(bmp: Bitmap): Verdict {
+    /** Images and browser: Falconsai, plus NudeNet when the score is borderline. */
+    fun classifyImage(bmp: Bitmap): Verdict = thresholds.verdict(scoreImage(bmp))
+
+    /** Effective screen score 0..1: worst tile score (portrait screens split into square tiles). */
+    fun scoreScreen(bmp: Bitmap): Float {
         val w = bmp.width
         val h = bmp.height
-        if (h <= w) return classifyImage(bmp)
+        if (h <= w) return scoreImage(bmp)
         val n = kotlin.math.ceil(h.toFloat() / w).toInt().coerceIn(2, 3)
-        var worst = Verdict.SAFE
+        var worst = 0f
         for (i in 0 until n) {
             val y = (h - w) * i / (n - 1)
             val tile = Bitmap.createBitmap(bmp, 0, y, w, w)
-            val v = classifyImage(tile)
+            worst = max(worst, scoreImage(tile))
             tile.recycle()
-            if (v.ordinal > worst.ordinal) worst = v
-            if (worst == Verdict.INAPPROPRIATE) break
+            if (worst >= thresholds.inappropriate) break
         }
         return worst
     }
+
+    /** Full-screen capture: portrait screens are split into square tiles so nothing is squashed. */
+    fun classifyScreen(bmp: Bitmap): Verdict = thresholds.verdict(scoreScreen(bmp))
 
     /** Video frames: Marqo (fast), plus Falconsai when borderline. */
     fun classifyFrame(bmp: Bitmap): Verdict {
